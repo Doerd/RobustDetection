@@ -8,10 +8,12 @@ from matplotlib import pyplot
 #np.set_printoptions(threshold=np.nan)
 
 path = "C:\\Users\\williamadriance\\My Documents\\RobustDetection\\entry\\challenge\\2014\\set-p\\"
-readfile = "112"
+import random
+readfile = str(random.randint(100,199))
 
 filedir = path+readfile
 
+print("Record number: " + readfile)
 
 
 sig, fields = wfdb.rdsamp(filedir, channels=[0])
@@ -52,35 +54,16 @@ def array_power(arr, power):
 
 def abs_array_power(arr, power):
 	return [abs(n**power) for n in arr]
+
+def normalize_array(arr, ran):
+	m = max(arr)
+	return [n*(ran/m) for n in arr]
 		
 #print(fields)
 #arr = np.fft.fft(sig)
 #wfdb.plotwfdb(sig, fields, annsamp = annsamp)
 sig = sig[:,0]
-'''
-#################################EXAMPLE
-# Example code, computes the coefficients of a low-pass windowed-sinc filter.
 
-# Configuration.
-fL = 3.0/250.0# Cutoff frequency as a fraction of the sampling rate.
-N = 59  # Filter length, must be odd.
-
-# Compute sinc filter.
-h = np.sinc(2 * fL * (np.arange(N) - (N - 1) / 2.))
-
-# Apply window.
-h *= np.blackman(N)
-
-# Normalize to get unity gain.
-h /= np.sum(h)
-
-#print(h)
-
-# Applying the filter to a signal s can be as simple as writing
-# s = np.convolve(s, h)
-
-##################################END OF EXAMPLE
-'''
 h = [
     0.000000000000000000,
     -0.000000011245324186,
@@ -545,11 +528,36 @@ h = [
     0.000000000000000000,
 ]
 
-#pyplot.plot(array_derivative(sig, 100))
+sig = normalize_array(sig, 1.2)
+
+sig_avg = sum(sig)/len(sig)
+print("average: ", sig_avg)
+
+sig = [n-sig_avg for n in sig]
+
+threshold = (sum([abs(number) for number in sig])/len(sig))
+arr = [0.3 if n > threshold or n < -1*threshold else 0 for n in sig]
+
+annnew = []
+count = 0
+print(len(annsamp))
+for i in range(len(sig)):
+	if count < len(annsamp) and annsamp[count] == i:
+		annnew.append(0.2)
+		count += 1
+	else:
+		annnew.append(0)
+		
+'''
+gapsum = 0
+for a in range(len(arr)-1):
+	gapsum += abs(arr[a+1]-arr[a])
+
+print("average gap: ", gapsum/(len(arr)-1))'''
 pyplot.plot(sig)
-#pyplot.plot(abs_array_power(np.convolve([10*n for n in sig],h), 3))
-threshold = 0.5
-pyplot.plot([n if n>threshold else 0 for n in sig])
+#pyplot.plot(array_power(sig, 20))
+#pyplot.plot(arr)
+#pyplot.plot(annnew)
 #pyplot.plot(abs_array_power(sig, 3))
 
 #summ = max(sig)
