@@ -5,11 +5,21 @@ import numpy as np
 import scipy
 import wfdb
 from matplotlib import pyplot
+import random
 #np.set_printoptions(threshold=np.nan)
 
-path = "C:\\Users\\williamadriance\\My Documents\\RobustDetection\\entry\\challenge\\2014\\set-p\\"
-import random
-readfile = str(random.randint(100,199))
+path = "C:\\Users\\williamadriance\\My Documents\\RobustDetection\\entry\\challenge\\2014\\"
+
+
+
+use_setp = False
+
+if use_setp:
+	path += "set-p\\"
+	readfile = str(random.randint(100,199))
+else:
+	path += "training\\"
+	readfile = "1858"
 
 filedir = path+readfile
 
@@ -19,6 +29,7 @@ print("Record number: " + readfile)
 sig, fields = wfdb.rdsamp(filedir, channels=[0])
 annsamp=wfdb.rdann(filedir, 'atr')[0]
 #print("annsamp: ", annsamp)
+print(fields)
 
 sig_train = []
 sig_test = []
@@ -56,12 +67,20 @@ def abs_array_power(arr, power):
 	return [abs(n**power) for n in arr]
 
 def normalize_array(arr, ran):
-	m = max(arr)
+	m = max(arr) if max(arr) > abs(min(arr)) else abs(min(arr))
 	return [n*(ran/m) for n in arr]
-		
-#print(fields)
-#arr = np.fft.fft(sig)
-#wfdb.plotwfdb(sig, fields, annsamp = annsamp)
+
+def ann_to_plot(sig, ann):
+	annnew = []
+	count = 0
+	for i in range(len(sig)):
+		if count < len(ann) and ann[count] == i:
+			annnew.append(1.5)
+			count += 1
+		else:
+			annnew.append(0)
+	return annnew
+
 sig = sig[:,0]
 
 h = [
@@ -528,36 +547,94 @@ h = [
     0.000000000000000000,
 ]
 
-sig = normalize_array(sig, 1.2)
 
+
+'''
 sig_avg = sum(sig)/len(sig)
 print("average: ", sig_avg)
 
 sig = [n-sig_avg for n in sig]
 
+avg_arr = [sig_avg for n in range(len(sig))]
+
+
 threshold = (sum([abs(number) for number in sig])/len(sig))
-arr = [0.3 if n > threshold or n < -1*threshold else 0 for n in sig]
-
-annnew = []
-count = 0
-print(len(annsamp))
-for i in range(len(sig)):
-	if count < len(annsamp) and annsamp[count] == i:
-		annnew.append(0.2)
-		count += 1
-	else:
-		annnew.append(0)
-		
+my_guess = [0.3 if n > threshold or n < -1*threshold else 0 for n in sig]
 '''
-gapsum = 0
-for a in range(len(arr)-1):
-	gapsum += abs(arr[a+1]-arr[a])
 
-print("average gap: ", gapsum/(len(arr)-1))'''
-pyplot.plot(sig)
+###########
+#  Start  #
+#   of    #
+#  window #
+###########
+
+def max_index(arr):
+	index = 0
+	for i in range(len(arr)):
+		if arr[i]>arr[index]:
+			index = i
+	return index
+
+init_window_width = 200
+window_width = init_window_width
+
+windowing_result = [0]*len(sig)
+windows_plotted = []
+
+arrays_windows = []
+
+sig = [abs(n) for n in sig]
+sig = np.convolve(sig, h)
+i=0
+while i<len(sig):
+	if window_width < 150:
+		window_width = 150
+	windows_plotted.append(0.1)
+	for j in range(window_width-1):
+		windows_plotted.append(0)
+	temp = sig[i:i+window_width]
+	ind = max_index(temp)
+	'''
+	if i%11==2 and i%29==1:
+		print(["XXXXXXXXXXXXXX: "+str(i+n)+", "+str(sig[i+n]) if n==ind else str(i+n)+", "+str(temp[n]) for n in range(len(temp))])
+		print(i+ind)
+	'''	
+	'''
+	for q in range(len(temp)):
+		if q==ind:
+			windowing_result[i+q] = 1
+		else:
+			windowing_result[i+q] = 0
+	'''
+	sample_shift = 4
+	shaving_off = 0.1
+	maxx = temp[ind]
+	for q in range(len(temp)):
+		c = i+q+sample_shift
+		if c<len(windowing_result):
+			if temp[q] >= (1-shaving_off)*maxx:
+				windowing_result[c] = 1
+			else:
+				windowing_result[c] = 0
+	
+	
+	window_width += (ind-window_width//2)
+	i += window_width
+	
+###########
+#  	End   #
+#   of    #
+#  window #
+###########	
+
+
+pyplot.plot(windowing_result, 'yellow')
+pyplot.plot(sig, 'blue')
+pyplot.plot(windows_plotted, 'red')
+pyplot.plot(ann_to_plot(sig, annsamp), 'magenta')
 #pyplot.plot(array_power(sig, 20))
 #pyplot.plot(arr)
-#pyplot.plot(annnew)
+
 #pyplot.plot(abs_array_power(sig, 3))
 
 #summ = max(sig)
