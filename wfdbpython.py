@@ -12,7 +12,7 @@ path = "C:\\Users\\williamadriance\\My Documents\\RobustDetection\\entry\\challe
 
 
 
-use_setp = False
+use_setp = True
 
 if use_setp:
 	path += "set-p\\"
@@ -20,7 +20,7 @@ if use_setp:
 else:
 	path += "training\\"
 	readfile = "43247"
-
+readfile = "101"
 filedir = path+readfile
 
 print("Record number: " + readfile)
@@ -118,9 +118,10 @@ def max_index(arr):
 init_window_width = 200
 window_width = init_window_width
 
-windowing_result = [0]*len(sig)
+windowing_result_plotform = [0]*len(sig)
 windows_plotted = []
 
+ann_guess = []
 arrays_windows = []
 
 sig = [abs(n) for n in sig]
@@ -149,16 +150,18 @@ while i<len(sig):
 		else:
 			windowing_result[i+q] = 0
 	'''
-	sample_shift = 4
+	sample_shift = 0
 	shaving_off = 0.05
 	maxx = temp[ind]
 	for q in range(len(temp)):
 		c = i+q+sample_shift
-		if c<len(windowing_result):
+		if c<len(windowing_result_plotform):
 			if temp[q] >= (1-shaving_off)*maxx and temp[q] > sigavg:
-				windowing_result[c] = 20
+				windowing_result_plotform[c] = 20
+				if len(ann_guess) > 1 and abs(ann_guess[len(ann_guess)-1]-c)>2:
+					ann_guess.append(c)
 			else:
-				windowing_result[c] = 0
+				windowing_result_plotform[c] = 0
 	
 	
 	window_width += (ind-window_width//2)
@@ -174,7 +177,7 @@ while i<len(sig):
 avg = [sigavg for n in range(len(sig))]
 
 
-pyplot.plot(windowing_result, 'yellow')
+pyplot.plot(windowing_result_plotform, 'yellow')
 pyplot.plot(sig, 'blue')
 pyplot.plot(windows_plotted, 'red')
 pyplot.plot(ann_to_plot(sig, annsamp), 'magenta')
@@ -188,6 +191,9 @@ pyplot.plot(avg, 'green')
 #transformed = np.convolve(array_derivative([100*(n/summ)*n for n in sig],1),h)
 #pyplot.plot(transformed)
 
-pyplot.show()
+#pyplot.show()
+
+print(ann_guess[:20])
+print(annsamp[:20])
 
 
