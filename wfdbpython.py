@@ -2,6 +2,7 @@
 #!/usr/Anaconda3/python3
 
 import numpy as np
+from scipy import signal
 import scipy
 import wfdb
 from matplotlib import pyplot
@@ -10,17 +11,17 @@ import random
 
 path = "C:\\Users\\williamadriance\\My Documents\\RobustDetection\\entry\\challenge\\2014\\"
 
-
-
 use_setp = True
 
 if use_setp:
 	path += "set-p\\"
 	readfile = str(random.randint(100,199))
+	readfile = "169"
 else:
 	path += "training\\"
-	readfile = "43247"
-readfile = "101"
+	readfile = "1071"
+	
+	
 filedir = path+readfile
 
 print("Record number: " + readfile)
@@ -70,12 +71,12 @@ def normalize_array(arr, ran):
 	m = max(arr) if max(arr) > abs(min(arr)) else abs(min(arr))
 	return [n*(ran/m) for n in arr]
 
-def ann_to_plot(sig, ann):
+def ann_to_plot(sig, ann, height):
 	annnew = []
 	count = 0
 	for i in range(len(sig)):
 		if count < len(ann) and ann[count] == i:
-			annnew.append(12)
+			annnew.append(height)
 			count += 1
 		else:
 			annnew.append(0)
@@ -83,9 +84,7 @@ def ann_to_plot(sig, ann):
 
 sig = sig[:,0]
 
-h=[
-3/8, 5/8, 7/8, 9/8, 11/8, 13/8, 15/8, 17/8
-]
+
 
 
 
@@ -124,8 +123,11 @@ windows_plotted = []
 ann_guess = []
 arrays_windows = []
 
-sig = [abs(n) for n in sig]
-sig = np.convolve(sig, h)
+
+
+arr = sig
+#sig = [abs(n) for n in sig]
+#sig = np.convolve(sig, h)
 
 sigavg = sum(sig)/len(sig)
 
@@ -133,31 +135,23 @@ i=0
 while i<len(sig):
 	if window_width < 150:
 		window_width = 150
+	if window_width > 500:
+		window_width = 270
 	windows_plotted.append(0.1)
 	for j in range(window_width-1):
 		windows_plotted.append(0)
 	temp = sig[i:i+window_width]
 	ind = max_index(temp)
-	'''
-	if i%11==2 and i%29==1:
-		print(["XXXXXXXXXXXXXX: "+str(i+n)+", "+str(sig[i+n]) if n==ind else str(i+n)+", "+str(temp[n]) for n in range(len(temp))])
-		print(i+ind)
-	'''	
-	'''
-	for q in range(len(temp)):
-		if q==ind:
-			windowing_result[i+q] = 1
-		else:
-			windowing_result[i+q] = 0
-	'''
-	sample_shift = 0
+	
+	
+	sample_shift = 2
 	shaving_off = 0.05
 	maxx = temp[ind]
 	for q in range(len(temp)):
 		c = i+q+sample_shift
 		if c<len(windowing_result_plotform):
 			if temp[q] >= (1-shaving_off)*maxx and temp[q] > sigavg:
-				windowing_result_plotform[c] = 20
+				windowing_result_plotform[c] = 2.9
 				if len(ann_guess) > 1 and abs(ann_guess[len(ann_guess)-1]-c)>2:
 					ann_guess.append(c)
 			else:
@@ -176,24 +170,45 @@ while i<len(sig):
 
 avg = [sigavg for n in range(len(sig))]
 
+#print(signal.butter(4, 0.5, 'low'))
 
-pyplot.plot(windowing_result_plotform, 'yellow')
-pyplot.plot(sig, 'blue')
-pyplot.plot(windows_plotted, 'red')
-pyplot.plot(ann_to_plot(sig, annsamp), 'magenta')
-pyplot.plot(avg, 'green')
-#pyplot.plot(array_power(sig, 20))
+h = [
+	0.01 for n in range(0,100)
+]
+transformed = np.convolve(sig,h)
+print("FFT:\n", np.fft.fft(sig))
+length = len(sig)
+mx_sig = max(sig)
+mx_trans = max(transformed)
+#pyplot.plot([0 if n<length else sig[n-length] for n in range(2*length)], 'blue')
+#pyplot.plot(transformed, 'red')
 #pyplot.plot(arr)
 
-#pyplot.plot(abs_array_power(sig, 3))
+#pyplot.plot(windowing_result_plotform, 'yellow')
+#pyplot.plot(windows_plotted, 'red')
+#pyplot.plot(ann_to_plot(sig, annsamp, 2), 'magenta')
 
-#summ = max(sig)
-#transformed = np.convolve(array_derivative([100*(n/summ)*n for n in sig],1),h)
-#pyplot.plot(transformed)
+#pyplot.plot(avg, 'green')
 
-#pyplot.show()
+'''
+Below is example of Fast Fourier Transform from scipy>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+'''
 
-print(ann_guess[:20])
-print(annsamp[:20])
+N = 600
+# sample spacing
+T = 1.0 / 800.0
+x = np.linspace(0.0, N*T, N)
+y = np.sin(50.0 * 2.0*np.pi*x) + 0.5*np.sin(80.0 * 2.0*np.pi*x)
+yf = scipy.fftpack.fft(y)
+xf = np.linspace(0.0, 1.0/(2.0*T), N/2)
+
+fig, ax = pyplot.subplots()
+ax.plot(xf, 2.0/N * np.abs(yf[:N//2]))
+
+'''
+End of example>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+'''
+
+pyplot.show()
 
 
